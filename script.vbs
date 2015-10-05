@@ -62,8 +62,21 @@ Sub SaveDetailsWindowSource(fileNumber)
   Save html, fileNumber
 End Sub
 
+Sub ClosePrintDialog
+  Dim box
+
+  Do
+    box = objWShell.AppActivate("Print")
+    If box = True Then
+      objWShell.SendKeys "{ESC}"
+      Exit Do
+    End If
+    WScript.Sleep 100
+  Loop
+end Sub
+
 Sub Main
-  Dim links, num_links, link, counter, row, date, dateStr, dayNum, docType, blackType, black, found
+  Dim links, num_links, link, counter, row, date, dateStr, dayNum, docType, blackType, black, found, resp
 
   Set links = tableFrame.contentwindow.document.getElementsbyTagname("a")
   num_links = Count(links)
@@ -87,10 +100,15 @@ Sub Main
         found = found + 1
         link.click
         iconsFrame.contentwindow.document.getElementsbyTagname("a")(6).click 'print icon ERROR HERE
-        WScript.sleep 1000
         iconsFrame.contentwindow.document.getElementsByName("cmd_Print").Item(0).Click 'button
-        Wscript.sleep 1000
         SaveDetailsWindowSource(counter)
+        ClosePrintDialog()
+        if counter Mod 100 = 0 Then
+          resp = MsgBox("", 3, "Continue?")
+          if resp = 7 Then
+            Exit Sub
+          end if
+        end if
       end if
     end if
     counter = counter + 1
