@@ -7,18 +7,18 @@ blacklist = Array("Act -","H.C.S. -","Notice -","Transaction","Will Registered")
 Function Window(url)
   Dim objShellWindows, objIE, strURL, i, win
 
-  Set objShellWindows = objShell.Windows
-  If objShellWindows.Count = 0 Then
-    Wscript.Echo "No browser windows are open to the Script Center."
-    Wscript.Quit
-  End If
-  For i = 0 to objShellWindows.Count - 1
-    Set objIE = objShellWindows.Item(i)
-    strURL = objIE.LocationURL
-    If InStr(strURL, url)Then
-      Set win = objIE
-    End If
-  Next
+  Do
+    Set objShellWindows = objShell.Windows
+    For i = 0 to objShellWindows.Count - 1
+      Set objIE = objShellWindows.Item(i)
+      strURL = objIE.LocationURL
+      If InStr(strURL, url)Then
+        Set win = objIE
+        Exit Do
+      End If
+    Next
+    WScript.sleep 100
+  Loop
   Set Window = win
 End Function
 
@@ -39,15 +39,11 @@ Function Count(items)
   Count = c
 End Function
 
-Function Source(window)
-  Source = window.document.body.innerHTML
-End Function
-
 Sub Save(text, fileName)
   Dim objFSO, outFile, objFile
 
   Set objFSO = CreateObject("Scripting.FileSystemObject")
-  outFile="D:\" & filename & ".html"
+  outFile="D:\1984\" & filename & ".html"
   Set objFile = objFSO.CreateTextFile(outFile,True)
   objFile.Write text & vbCrLf
   objFile.Close
@@ -58,7 +54,7 @@ Sub SaveDetailsWindowSource(fileNumber)
 
   url = "http://pride/pride/Search/PrintDetails.aspx"
   Set childWindow = window(url)
-  html = Source(childWindow)
+  html = childWindow.document.body.innerHTML
   Save html, fileNumber
 End Sub
 
@@ -74,6 +70,32 @@ Sub ClosePrintDialog
     WScript.Sleep 100
   Loop
 end Sub
+
+Sub ClickIcon
+  Dim icon
+
+  Do
+    Set icon = iconsFrame.contentwindow.document.getElementsbyTagname("a")(6)
+    if IsObject(icon) Then
+      Exit Do
+    end if
+    WScript.sleep 100
+  Loop
+  icon.click
+End Sub
+
+Sub ClickButton
+  Dim button
+
+  Do
+    Set button = iconsFrame.contentwindow.document.getElementsByName("cmd_Print").Item(0)
+    if IsObject(button) Then
+      Exit Do
+    end if
+    WScript.sleep 100
+  Loop
+  button.click
+End Sub
 
 Sub Main
   Dim links, num_links, link, counter, row, date, dateStr, dayNum, docType, blackType, black, found, resp
@@ -99,21 +121,24 @@ Sub Main
       if black = false Then
         found = found + 1
         link.click
-        iconsFrame.contentwindow.document.getElementsbyTagname("a")(6).click 'print icon ERROR HERE
-        iconsFrame.contentwindow.document.getElementsByName("cmd_Print").Item(0).Click 'button
-        SaveDetailsWindowSource(counter)
+        ClickIcon()
+        ClickButton()
         ClosePrintDialog()
+        SaveDetailsWindowSource(counter)
         if counter Mod 100 = 0 Then
-          resp = MsgBox("", 3, "Continue?")
+          resp = MsgBox(found, 3, "Continue?")
           if resp = 7 Then
             Exit Sub
           end if
         end if
       end if
     end if
+    'if counter = 10 Then
+      'exit Sub
+    'end if
     counter = counter + 1
   Next
-  MsgBox found
+  'MsgBox found
 End Sub
 
 
