@@ -1,102 +1,118 @@
 Option Explicit
 
-Dim objWShell, objShell, mainWindow, tableRows, tableFrame, iconsFrame, blacklist
+Dim objWShell, objShell, mainWindow, tableRows, tableFrame, iconsFrame, blacklist, year
 
-blacklist = Array("Act -","H.C.S. -","Notice -","Transaction","Will Registered")
+year = "2015"
+blacklist = Array("Act -","Co ownership Declaration","H.C.S. -","Notice -","Rights - Sale","Transaction","Will Registered")
 
 Function Window(url)
-  Dim objShellWindows, objIE, strURL, i, win
-
-  Do
-    Set objShellWindows = objShell.Windows
-    For i = 0 to objShellWindows.Count - 1
-      Set objIE = objShellWindows.Item(i)
-      strURL = objIE.LocationURL
-      If InStr(strURL, url)Then
-        Set win = objIE
-        Exit Do
-      End If
-    Next
-    WScript.sleep 100
-  Loop
+  Dim objWindow, win
+  do
+    for each objWindow in objShell.Windows
+      if InStr(objWindow.FullName, "iexplore") then
+        if InStr(objWindow.LocationURL, url) then
+          Set win = objWindow
+          exit do
+        end if
+      end if
+    next
+    WScript.sleep 10
+  loop
   Set Window = win
 End Function
-
-Function Frame(window, fNum)
-  Dim iframes, i
-
-  Set iframes = window.document.getElementsByTagName("frame")
-  Frame = iframes.Item(fnum)
-End Function
-
+'23
 Function Count(items)
   Dim item, c
-
   c = 0
-  For Each item In items
+  for each item in items
     c = c + 1
-  Next
+  next
   Count = c
 End Function
-
+'32
 Sub Save(text, fileName)
   Dim objFSO, outFile, objFile
-
   Set objFSO = CreateObject("Scripting.FileSystemObject")
-  outFile="D:\1984\" & filename & ".html"
-  Set objFile = objFSO.CreateTextFile(outFile,True)
+  outFile="D:\" & year & "\" & filename & ".html"
+  Set objFile = objFSO.CreateTextFile(outFile, True)
   objFile.Write text & vbCrLf
   objFile.Close
 End Sub
-
+'41
 Sub SaveDetailsWindowSource(fileNumber)
-  Dim url, childWindow, html
-
-  url = "http://pride/pride/Search/PrintDetails.aspx"
-  Set childWindow = window(url)
-  html = childWindow.document.body.innerHTML
-  Save html, fileNumber
+  Save window("http://pride/pride/Search/PrintDetails.aspx").document.body.innerHTML, fileNumber
 End Sub
-
+'45
 Sub ClosePrintDialog
-  Dim box
-
-  Do
-    box = objWShell.AppActivate("Print")
-    If box = True Then
+  do
+    if objWShell.AppActivate("Print") = True then
       objWShell.SendKeys "{ESC}"
-      Exit Do
-    End If
-    WScript.Sleep 100
-  Loop
+    else
+      exit do
+    end if
+    WScript.Sleep 10
+  loop
 end Sub
-
+'56
+Sub ClickIt(object)
+  do
+    On Error Resume Next
+    object.click
+    if Err.Number = 0 then
+      On Error Goto 0
+      Err.Clear
+      exit do
+    end if
+    WScript.sleep 10
+  loop
+End Sub
+'69
 Sub ClickIcon
   Dim icon
-
-  Do
+  do
     Set icon = iconsFrame.contentwindow.document.getElementsbyTagname("a")(6)
-    if IsObject(icon) Then
-      Exit Do
+    if icon is Nothing then
+    else
+      exit do
     end if
-    WScript.sleep 100
-  Loop
-  icon.click
+    WScript.sleep 10
+  loop
+  ClickIt(icon)
 End Sub
-
+'82
 Sub ClickButton
   Dim button
-
-  Do
+  do
     Set button = iconsFrame.contentwindow.document.getElementsByName("cmd_Print").Item(0)
-    if IsObject(button) Then
-      Exit Do
+    if button is Nothing then
+    else
+      exit do
     end if
-    WScript.sleep 100
-  Loop
-  button.click
+    WScript.sleep 10
+  loop
+  ClickIt(button)
 End Sub
-
+'95
+Sub ClosePrintDetailsWindow
+  Dim objWindow, gone
+  do
+    gone = True
+    for each objWindow in objShell.Windows
+      if InStr(objWindow.FullName, "iexplore") then
+        strURL = objWindow.LocationURL
+        if InStr(strURL, "http://pride/pride/Search/PrintDetails.aspx") then
+          gone = False
+          objWindow.Quit
+        end if
+      end if
+      if gone = True then
+        exit do
+      end if
+    next
+    Wscript.sleep 10
+  loop
+end Sub
+'115
 Sub Main
   Dim links, num_links, link, counter, row, date, dateStr, dayNum, docType, blackType, black, found, resp
 
@@ -104,43 +120,39 @@ Sub Main
   num_links = Count(links)
   counter = 0
   found = 0
-  For Each link In links
+  for each link in links
     Set row = tableRows(counter + 1) '1 more than links because of title row
     date = Split(row.cells(3).innerText, "/")
     dateStr = date(1) & "/" & date(0) & "/" & date(2)
     dayNum = Weekday(CDate(dateStr))
-    if dayNum = 6 Then 'Friday
+    if dayNum = 6 then 'Friday
       docType = row.cells(8).innerText
-      black = false
-      For Each blackType in blacklist
-        If Instr(1, docType, blacktype) = 1 Then '= 1 means true :)
-          black = true
-          Exit for 'blacklist - not interested
+      black = False
+      for each blackType in blacklist
+        if Instr(1, docType, blacktype) = 1 then '= 1 means True :)
+          black = True
+          exit for 'blacklist - not interested
         end if
-      Next
-      if black = false Then
+      next
+      if black = False then
         found = found + 1
         link.click
         ClickIcon()
         ClickButton()
         ClosePrintDialog()
         SaveDetailsWindowSource(counter)
-        if counter Mod 100 = 0 Then
-          resp = MsgBox(found, 3, "Continue?")
-          if resp = 7 Then
-            Exit Sub
-          end if
-        end if
+        ClosePrintDetailsWindow()
+        'if counter > 99 And counter Mod 100 = 0 Then
+          'resp = MsgBox(found, 3, "Continue?")
+          'if resp = 7 Then
+            'Exit Sub
+          'end if
+        'end if
       end if
     end if
-    'if counter = 10 Then
-      'exit Sub
-    'end if
     counter = counter + 1
-  Next
-  'MsgBox found
+  next
 End Sub
-
 
 Set objWShell = CreateObject("Wscript.Shell")
 Set objShell = CreateObject("Shell.Application")
@@ -149,3 +161,4 @@ Set tableFrame = mainWindow.document.getElementsByTagName("frame").Item(2)
 Set iconsFrame = mainWindow.document.getElementsByTagName("frame").Item(3)
 Set tableRows = tableFrame.contentwindow.document.getElementsbyTagname("table").Item(0).rows
 Main()
+MsgBox "Done"
