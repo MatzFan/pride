@@ -43,17 +43,15 @@ Sub SaveDetailsWindowSource(fileNumber)
   Save window("http://pride/pride/Search/PrintDetails.aspx").document.body.innerHTML, fileNumber
 End Sub
 '45
-Sub ClosePrintDialog
-  do
-    if objWShell.AppActivate("Print") = True then
-      objWShell.SendKeys "{ESC}"
-    else
-      exit do
-    end if
-    WScript.Sleep 10
-  loop
+Sub ClosePrintDialogs
+  if objWShell.AppActivate("Print") = True then
+    On Error Resume Next
+    objWShell.SendKeys "{ESC}"
+    Err.Clear
+    On Error Goto 0
+  end if
 end Sub
-'56
+'54
 Sub ClickIt(object)
   do
     On Error Resume Next
@@ -66,33 +64,31 @@ Sub ClickIt(object)
     WScript.sleep 10
   loop
 End Sub
-'69
-Sub ClickIcon
-  Dim icon
+'67
+Sub ClickPrintIcon(href)
+  Dim link
   do
-    Set icon = iconsFrame.contentwindow.document.getElementsbyTagname("a")(6)
-    if icon is Nothing then
-    else
+    Set link = iconsFrame.contentwindow.document.getElementsbyTagname("a")(6)
+    if (Not(link is Nothing) AND link.GetAttribute("href") = href) then 'link must exist and be one for correct document
       exit do
     end if
     WScript.sleep 10
   loop
-  ClickIt(icon)
+  ClickIt(link)
 End Sub
-'82
-Sub ClickButton
+'79
+Sub ClickPrintButton()
   Dim button
   do
     Set button = iconsFrame.contentwindow.document.getElementsByName("cmd_Print").Item(0)
-    if button is Nothing then
-    else
+    if Not(button is Nothing) then
       exit do
     end if
     WScript.sleep 10
   loop
   ClickIt(button)
 End Sub
-'95
+'91
 Sub ClosePrintDetailsWindow
   Dim objWindow, gone
   do
@@ -112,9 +108,9 @@ Sub ClosePrintDetailsWindow
     Wscript.sleep 10
   loop
 end Sub
-'115
+'111
 Sub Main
-  Dim links, num_links, link, counter, row, date, dateStr, dayNum, docType, blackType, black, found, resp
+  Dim links, num_links, link, counter, row, date, dateStr, dayNum, docType, blackType, black, found, resp, href
 
   Set links = tableFrame.contentwindow.document.getElementsbyTagname("a")
   num_links = Count(links)
@@ -136,10 +132,11 @@ Sub Main
       next
       if black = False then
         found = found + 1
+        href = link.GetAttribute("href")
         link.click
-        ClickIcon()
-        ClickButton()
-        ClosePrintDialog()
+        ClickPrintIcon(href)
+        ClickPrintButton()
+        ClosePrintDialogs()
         SaveDetailsWindowSource(counter)
         ClosePrintDetailsWindow()
         'if counter > 99 And counter Mod 100 = 0 Then
